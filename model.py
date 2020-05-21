@@ -29,18 +29,21 @@ pd.set_option('display.max_rows', 500)
 #INPUTS:
     #shape_: automatically done in cv function
     #args: dictionary with the following keys
-        #rnn: (int) # of rnn layers at the end. -1 if none used
-        #multitask: (int) predict the signal for the point n timestamps ahead
-        #activation_penalty: (Boolean) include a penalty for activations on last 
+        #Rnn: (int) # of rnn layers at the end. -1 if none used
+        #Multitask: (list of ints) predict the channels for the point n timestamps 
+                #ahead.  If an int is negative, it predicts a previous channel.
+                #Empty list if no predictions desired
+        #Multi_Weights: (int) the weight given to a multitask loss.  
+        #Activation_penalty: (Boolean) include a penalty for activations on last 
                #non_softmax layer.  
         #LR: the learning rate.
-        #wn:architecture: (int) arch of wavenet section.
+        #Wn:architecture: (int) arch of wavenet section.
             #1 is standard, 
             #2 is mini
             #3 is ...
         
 ###############################################################################
-def Classifier(shape_):    
+def Classifier(shape_, args):    
     def cbr(x, out_layer, kernel, stride, dilation):
         x = Conv1D(out_layer, kernel_size=kernel, dilation_rate=dilation, strides=stride, padding="same")(x)
         x = BatchNormalization()(x)
@@ -70,14 +73,34 @@ def Classifier(shape_):
                        padding = 'same')(x)
             res_x = Add()([res_x, x])
         return res_x
-    
+    #Returns a list of convolution softmax heads depending on the number of 
+    #multitask predictions desired
+    def Multitask_Head(fork, num_preds):
+        if num_preds == 0:
+            return []
+        heads = []
+        for i in range(num_preds):
+            pred = cbr(fork, 32, 7, 1, 1)
+            pred = BatchNormalization()(pred)
+            pred = Dropout(0.2)(pred)
+            pred = Dense(11, activation = 'softmax', name = 'out')(pred)
+            heads.append(pred)
+        return heads
+    #Returns the weights of the heads for the classifier. multi_weight is the 
+    # weight given to each multitask prediction.  
+    def Get_Weights(num_losses, multi_weight):
+        if num_losses ==1:
+            return [1.]
+        else:
+            return [1. - multi_weight*(num_losses-1)] +[multi_weight for i in range(num_losses - 1 )]
+
     inp = Input(shape = (shape_))
     x = cbr(inp, 64, 7, 1, 1)
     #Commented for faster prototyping.  Get rid of comments when actually submitting code
     
     x = BatchNormalization()(x)
     x = wave_block(x, 16, 3, 12)
-    
+    '''
     x = BatchNormalization()(x)
     x = wave_block(x, 32, 3, 8)
     x = BatchNormalization()(x)
@@ -87,16 +110,20 @@ def Classifier(shape_):
     x = cbr(x, 32, 7, 1, 1)
     x = BatchNormalization()(x)
     x = wave_block(x, 64, 3, 1)
-    x = cbr(x, 32, 7, 1, 1)
-    
-    x = BatchNormalization()(x)
+    '''
+    fork = cbr(x, 32, 7, 1, 1)
+    multitask_list = Multitask_Head(fork, len(args['Multitask']))
+    x = BatchNormalization()(fork)
     x = Dropout(0.2)(x)
     out = Dense(11, activation = 'softmax', name = 'out')(x)
-    
-    model = models.Model(inputs = inp, outputs = out)
+    outputs = [out] + multitask_list
+    model = models.Model(inputs = inp, outputs = outputs)
     
     opt = Adam(lr = args['LR'])
-    model.compile(loss = losses.CategoricalCrossentropy(), optimizer = opt, metrics = ['accuracy'])
+    losses = [losses.CategoricalCrossentropy() for i in len(multitask_list)]
+    loss_weights = Get_Weights(len(losses), args['Multi_Weights'])
+    model.compile(loss = losses, optimizer = opt, metrics = ['accuracy'],
+                  loss_weights = loss_weights)
     return model
 
 # function that decrease the learning as epochs increase (i also change this part of the code)
