@@ -51,7 +51,6 @@ def lag_with_pct_change(df, lags, leads, diff = False):
     return df
 
 def Height(df, args):
-    n=4
     values_list = []
     if args['Tallest'] != -1:
         for i in range(1,args['Tallest']+1):
@@ -100,8 +99,7 @@ def feature_selection(train, test):
         #Diff: (Boolean) lag/lead columns subtracted by the present signal
         #Rfc: (Boolean) to use RFC preds for model
         #Group_batch_size: (int) size of the time slice to be trained on
-        #Tallest: (int) is the signal taller than n lag&lead timestamps? -1 if not used
-        #Lowest:  (int) is the signal less than n lag&lead timestamps? -1 if not used
+        #Height: (int) is the signal tallerorsmaller than n lag&lead timestamps? -1 if not used
 #OUTPUT:
     #train
     #test
@@ -122,7 +120,7 @@ def data_wrangling(args):
     data_args = {'Lag': [1,2,3],
                 'Lead':[1,2,3],
                 'Diff': True,
-                'Height': True,
+                'Height': [4],
                 'Rfc': True,
                 'GROUP_BATCH_SIZE': 50000}
     train, test, features = data_wrangling(args = data_args)    
