@@ -6,6 +6,7 @@ Created on Wed May 20 11:24:09 2020
 """
 import pandas as pd
 import numpy as np
+import gc
 # read data
 def read_data(RFC = True):
     train = pd.read_csv('/kaggle/input/data-without-drift/train_clean.csv', dtype={'time': np.float32, 'signal': np.float32, 'open_channels':np.int32})
@@ -68,7 +69,7 @@ def Height(df, args):
 # main module to run feature engineering. Here you may want to try and add other features and check if your score imporves :).
 def run_feat_engineering(df, args):
     # create batches
-    df = batching(df, batch_size = args['Group_batch_size'])
+    df = batching(df, batch_size = args['GROUP_BATCH_SIZE'])
     
     # create leads and lags of 'Lag' and 'Lead' from args
     df = lag_with_pct_change(df, lags = args['Lag'], leads = args['Lead'], diff = args['Diff'])
@@ -105,23 +106,15 @@ def feature_selection(train, test):
     #test
     #features: the features used in the data for training the network
 ###############################################################################
-def data_wrangling(args):
+def Data_Wrangling(args):
     print('Reading in Data')
-    train, test, sample_submission = read_data(args['RFC'])
+    train, test, sample_submission = read_data(args['Rfc'])
     train, test = normalize(train, test)
         
     print('Creating Features')
     print('Feature Engineering Started...')
-    train = run_feat_engineering(train, batch_size = GROUP_BATCH_SIZE, args)
-    test = run_feat_engineering(test, batch_size = GROUP_BATCH_SIZE, args)
+    train = run_feat_engineering(train, args=args)
+    test = run_feat_engineering(test, args=args)
     train, test, features = feature_selection(train, test)
     print('Feature Engineering Completed...')
-        
-    data_args = {'Lag': [1,2,3],
-                'Lead':[1,2,3],
-                'Diff': True,
-                'Height': [4],
-                'Rfc': True,
-                'GROUP_BATCH_SIZE': 50000}
-    train, test, features = data_wrangling(args = data_args)    
-    return (train, test, features)
+    return (train, test, features)  

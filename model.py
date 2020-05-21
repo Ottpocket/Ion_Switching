@@ -83,7 +83,7 @@ def Classifier(shape_, args):
             pred = cbr(fork, 32, 7, 1, 1)
             pred = BatchNormalization()(pred)
             pred = Dropout(0.2)(pred)
-            pred = Dense(11, activation = 'softmax', name = 'out')(pred)
+            pred = Dense(11, activation = 'softmax', name = 'multout_{}'.format(i+1))(pred)
             heads.append(pred)
         return heads
     #Returns the weights of the heads for the classifier. multi_weight is the 
@@ -97,10 +97,9 @@ def Classifier(shape_, args):
     inp = Input(shape = (shape_))
     x = cbr(inp, 64, 7, 1, 1)
     #Commented for faster prototyping.  Get rid of comments when actually submitting code
-    
+    '''
     x = BatchNormalization()(x)
     x = wave_block(x, 16, 3, 12)
-    '''
     x = BatchNormalization()(x)
     x = wave_block(x, 32, 3, 8)
     x = BatchNormalization()(x)
@@ -120,49 +119,21 @@ def Classifier(shape_, args):
     model = models.Model(inputs = inp, outputs = outputs)
     
     opt = Adam(lr = args['LR'])
-    losses = [losses.CategoricalCrossentropy() for i in len(multitask_list)]
-    loss_weights = Get_Weights(len(losses), args['Multi_Weights'])
-    model.compile(loss = losses, optimizer = opt, metrics = ['accuracy'],
-                  loss_weights = loss_weights)
+    losses_ = [losses.CategoricalCrossentropy() for i in range(len(outputs))]
+    loss_weights_ = Get_Weights(len(losses_), args['Multi_Weights'])
+    model.compile(loss = losses_, optimizer = opt, metrics = ['accuracy'],
+                  loss_weights = loss_weights_)
     return model
 
-# function that decrease the learning as epochs increase (i also change this part of the code)
-def lr_schedule(epoch):
-    if epoch < 30:
-        lr = args['LR']
-    elif epoch < 40:
-        lr = args['LR'] / 3
-    elif epoch < 50:
-        lr = args['LR'] / 5
-    elif epoch < 60:
-        lr = args['LR'] / 7
-    elif epoch < 70:
-        lr = args['LR'] / 9
-    elif epoch < 80:
-        lr = args['LR'] / 11
-    elif epoch < 90:
-        lr = args['LR'] / 13
-    else:
-        lr = args['LR'] / 100
-    return lr
 
-# class to get macro f1 score. This is not entirely necessary but it's fun to check f1 score of each epoch (be carefull, if you use this function early stopping callback will not work)
-class MacroF1(Callback):
-    def __init__(self, model, inputs, targets, val_inputs, val_targets):
-        self.model = model
-        self.inputs = inputs
-        self.targets = np.argmax(targets, axis = 2).reshape(-1)
-        self.val_inputs = val_inputs
-        self.val_targets = np.argmax(val_targets, axis = 2).reshape(-1)
-        self.time = time()
-        
-    def on_epoch_end(self, epoch, logs):
-        pred = np.argmax(self.model.predict(self.inputs), axis = 2).reshape(-1)
-        score = f1_score(self.targets, pred, average = 'macro')
-        logs['F1_tr'] = score
-        pred2 = np.argmax(self.model.predict(self.val_inputs), axis = 2).reshape(-1)
-        score2 = f1_score(self.val_targets, pred2, average = 'macro')
-        logs['F1_val'] = score2
-        logs['time'] = self.time - time()
-        print(f'F1 Macro Score, Train: {score:.5f}, Val: {score2:.5f}')
-        gc.collect()
+
+args = {'Rnn': False,
+        'Multitask': [1,2,-1],
+        'Multi_Weights': .05,
+        'Activation_penalty': False,
+        'LR': .0015,
+        'Wn':1
+        }
+model = Classifier([None, 22], args)
+
+tf.keras.utils.plot_model(model)

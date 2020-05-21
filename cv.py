@@ -37,12 +37,6 @@ for dirname, _, filenames in os.walk('/kaggle/input'):
     for filename in filenames:
         print(os.path.join(dirname, filename))
 
-EPOCHS = 60 #180 
-NNBATCHSIZE = 16
-GROUP_BATCH_SIZE = 50000#4000
-SEED = 321
-LR = 0.0015
-SPLITS = 5 #
 
 def seed_everything(seed):
     random.seed(seed)
@@ -50,87 +44,6 @@ def seed_everything(seed):
     os.environ['PYTHONHASHSEED'] = str(seed)
     tf.random.set_seed(seed)
 
-# model function (very important, you can try different arquitectures to get a better score. I believe that top public leaderboard is a 1D Conv + RNN style)
-def Classifier(shape_):
-    
-    def cbr(x, out_layer, kernel, stride, dilation):
-        x = Conv1D(out_layer, kernel_size=kernel, dilation_rate=dilation, strides=stride, padding="same")(x)
-        x = BatchNormalization()(x)
-        x = Activation("relu")(x)
-        return x
-    
-    def wave_block(x, filters, kernel_size, n):
-        dilation_rates = [2**i for i in range(n)]
-        x = Conv1D(filters = filters,
-                   kernel_size = 1,
-                   padding = 'same')(x)
-        res_x = x
-        for dilation_rate in dilation_rates:
-            tanh_out = Conv1D(filters = filters,
-                              kernel_size = kernel_size,
-                              padding = 'same', 
-                              activation = 'tanh', 
-                              dilation_rate = dilation_rate)(x)
-            sigm_out = Conv1D(filters = filters,
-                              kernel_size = kernel_size,
-                              padding = 'same',
-                              activation = 'sigmoid', 
-                              dilation_rate = dilation_rate)(x)
-            x = Multiply()([tanh_out, sigm_out])
-            x = Conv1D(filters = filters,
-                       kernel_size = 1,
-                       padding = 'same')(x)
-            res_x = Add()([res_x, x])
-        return res_x
-    
-    inp = Input(shape = (shape_))
-    x = cbr(inp, 64, 7, 1, 1)
-    #Commented for faster prototyping.  Get rid of comments when actually submitting code
-    
-    x = BatchNormalization()(x)
-    x = wave_block(x, 16, 3, 12)
-    
-    x = BatchNormalization()(x)
-    x = wave_block(x, 32, 3, 8)
-    x = BatchNormalization()(x)
-    x = wave_block(x, 64, 3, 4)
-    x = BatchNormalization()(x)
-    x = wave_block(x, 128, 3, 1)
-    x = cbr(x, 32, 7, 1, 1)
-    x = BatchNormalization()(x)
-    x = wave_block(x, 64, 3, 1)
-    x = cbr(x, 32, 7, 1, 1)
-    
-    x = BatchNormalization()(x)
-    x = Dropout(0.2)(x)
-    out = Dense(11, activation = 'softmax', name = 'out')(x)
-    
-    model = models.Model(inputs = inp, outputs = out)
-    
-    opt = Adam(lr = LR)
-    #opt = tfa.optimizers.SWA(opt) #Figure out how to get this running!
-    model.compile(loss = losses.CategoricalCrossentropy(), optimizer = opt, metrics = ['accuracy'])
-    return model
-
-# function that decrease the learning as epochs increase (i also change this part of the code)
-def lr_schedule(epoch):
-    if epoch < 30:
-        lr = LR
-    elif epoch < 40:
-        lr = LR / 3
-    elif epoch < 50:
-        lr = LR / 5
-    elif epoch < 60:
-        lr = LR / 7
-    elif epoch < 70:
-        lr = LR / 9
-    elif epoch < 80:
-        lr = LR / 11
-    elif epoch < 90:
-        lr = LR / 13
-    else:
-        lr = LR / 100
-    return lr
 
 # class to get macro f1 score. This is not entirely necessary but it's fun to check f1 score of each epoch (be carefull, if you use this function early stopping callback will not work)
 class MacroF1(Callback):
@@ -152,6 +65,26 @@ class MacroF1(Callback):
         logs['time'] = self.time - time()
         print(f'F1 Macro Score, Train: {score:.5f}, Val: {score2:.5f}')
         gc.collect()
+
+# function that decrease the learning as epochs increase (i also change this part of the code)
+def lr_schedule(epoch):
+    if epoch < 30:
+        lr = LR
+    elif epoch < 40:
+        lr = LR / 3
+    elif epoch < 50:
+        lr = LR / 5
+    elif epoch < 60:
+        lr = LR / 7
+    elif epoch < 70:
+        lr = LR / 9
+    elif epoch < 80:
+        lr = LR / 11
+    elif epoch < 90:
+        lr = LR / 13
+    else:
+        lr = LR / 100
+    return lr
 
 # main function to perfrom groupkfold cross validation (we have 1000 vectores of 4000 rows and 8 features (columns)). Going to make 5 groups with this subgroups.
 ###############################################################################

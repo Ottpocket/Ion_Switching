@@ -5,23 +5,35 @@ Created on Wed May 20 10:10:30 2020
 @author: andre
 """
 
+#EPOCHS = 60 #180 
+#NNBATCHSIZE = 16
+#GROUP_BATCH_SIZE = 50000#4000
+#SEED = 321
+#LR = 0.0015
+#SPLITS = 5 #
+import os
+os.chdir('C:/Users/andre/Documents/Github/Ion_Switching')
+from data_wrangling import Data_Wrangling
+
+
 def main(name = None):
     if name is None:
         print('Give a name please!')
         return
-    data_args = {'lag': [1,2,3],
-            'lead':[1,2,3],
-            'diff': True,
-            'RFC': True,
-            'GROUP_BATCH_SIZE': 50000,
-            'tallest': 2,
-            'lowest': 2}
-    train, test, features = data_wrangling(args = data_args)
-    cv_args = {'multitask':False,
-               'LSTM':0,
-               'size':1,
-               'activation_penalty':False,
-               'LR': .0015}
+    data_args = {'Lag': [1,2,3],
+                 'Lead':[1,2,3],
+                 'Diff': True,
+                 'Rfc': True,
+                 'GROUP_BATCH_SIZE': 50000,
+                 'Tallest': 2,
+                 'Lowest': 2,
+                 'Rnn': False,
+                 'Multitask': [1,2,-1],
+                 'Multi_Weights': .05,
+                 'Activation_penalty': False,
+                 'LR': .0015,
+                 'Wn':1}
+    
     cv_validation(args = cv_args, model_name = name)
     pass
 
