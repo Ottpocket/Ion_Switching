@@ -40,9 +40,9 @@ def lag_with_pct_change(df, lags, leads, diff = False):
     if lags != -1:
         for lag in lags:    
             if diff == False:
-                df['signal_shift_pos_' + str(lag)] = df.groupby('group')['signal'].shift(-1 * lag).fillna(0)
+                df['signal_shift_neg_' + str(lag)] = df.groupby('group')['signal'].shift(-1 * lag).fillna(0)
             else:
-                df['signal_shift_pos_' + str(lag)] = df.groupby('group')['signal'].shift(-1 * lag).fillna(0) - df.groupby('group')['signal'].shift(0).fillna(0)
+                df['signal_shift_neg_' + str(lag)] = df.groupby('group')['signal'].shift(-1 * lag).fillna(0) - df.groupby('group')['signal'].shift(0).fillna(0)
     if leads != -1:
         for lead in leads:    
             if diff ==False:
@@ -108,13 +108,14 @@ def feature_selection(train, test):
 ###############################################################################
 def Data_Wrangling(args):
     print('Reading in Data')
-    train, test, sample_submission = read_data(args['Rfc'])
+    train, test, sample_submission = read_data(RFC = args['Rfc'])
     train, test = normalize(train, test)
         
     print('Creating Features')
     print('Feature Engineering Started...')
-    train = run_feat_engineering(train, args=args)
+    train = run_feat_engineering(train,  args=args)
     test = run_feat_engineering(test, args=args)
     train, test, features = feature_selection(train, test)
     print('Feature Engineering Completed...')
-    return (train, test, features)  
+    return (train, test, features)
+        
