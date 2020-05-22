@@ -20,19 +20,19 @@ def main(name = None):
     if name is None:
         print('Give a name please!')
         return
-    data_args = {'Lag': [1,2,3],
-                 'Lead':[1,2,3],
-                 'Diff': True,
-                 'Rfc': True,
-                 'GROUP_BATCH_SIZE': 50000,
-                 'Tallest': 2,
-                 'Lowest': 2,
-                 'Rnn': False,
-                 'Multitask': [1,2,-1],
-                 'Multi_Weights': .05,
-                 'Activation_penalty': False,
-                 'LR': .0015,
-                 'Wn':1}
+    args = {'Lag': [1],
+             'Lead':[1,2,3,4],
+             'Diff': True,
+             'Rfc': True,
+             'GROUP_BATCH_SIZE': 50000,
+             'Tallest': 2,
+             'Lowest': 2,
+             'Rnn': False,
+             'Multitask': [1,2,-1],
+             'Multi_Weights': .05,
+             'Activation_penalty': False,
+             'LR': .0015,
+             'Wn':1}
     
     cv_validation(args = cv_args, model_name = name)
     pass
