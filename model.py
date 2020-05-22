@@ -4,20 +4,15 @@ import os
 import tensorflow as tf
 from tensorflow.keras.layers import *
 import pandas as pd
-import numpy as np
-import random
 from IPython.display import FileLink
 from time import time
 from tensorflow.keras.callbacks import Callback, LearningRateScheduler
-from tensorflow.keras.losses import categorical_crossentropy
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import backend as K
 from tensorflow.keras import losses, models, optimizers
 #import tensorflow_addons as tfa #Figure out how to get this working!
 import gc
 
-from sklearn.model_selection import GroupKFold
-from sklearn.metrics import f1_score
 
 import warnings
 warnings.simplefilter('ignore')
@@ -126,14 +121,22 @@ def Classifier(shape_, args):
     return model
 
 
-
-args = {'Rnn': False,
-        'Multitask': [1,2,-1],
-        'Multi_Weights': .05,
-        'Activation_penalty': False,
-        'LR': .0015,
-        'Wn':1
-        }
+'''
+args = {'Lag': [1],
+             'Lead':[1,2,3,4],
+             'Diff': True,
+             'Rfc': True,
+             'GROUP_BATCH_SIZE': 50000,
+             'Tallest': 2,
+             'Lowest': 2,
+             'Rnn': False,
+             'Multitask': [1,2,-1],
+             'Multi_Weights': .05,
+             'Activation_penalty': False,
+             'LR': .015,
+             'Wn':1,
+             'Epochs':25,
+             'Minibatch_Size': 16}
 model = Classifier([None, 22], args)
-
 tf.keras.utils.plot_model(model)
+'''

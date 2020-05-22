@@ -67,20 +67,21 @@ class MacroF1(Callback):
         gc.collect()
 
 # function that decrease the learning as epochs increase (i also change this part of the code)
-def lr_schedule(epoch):
-    if epoch < 30:
+def lr_schedule(epoch, args):
+    LR = args['LR']
+    if epoch < 15:
         lr = LR
-    elif epoch < 40:
+    elif epoch < 30:
         lr = LR / 3
-    elif epoch < 50:
+    elif epoch < 40:
         lr = LR / 5
-    elif epoch < 60:
+    elif epoch < 50:
         lr = LR / 7
-    elif epoch < 70:
+    elif epoch < 60:
         lr = LR / 9
-    elif epoch < 80:
+    elif epoch < 70:
         lr = LR / 11
-    elif epoch < 90:
+    elif epoch < 80:
         lr = LR / 13
     else:
         lr = LR / 100
@@ -90,24 +91,22 @@ def lr_schedule(epoch):
 ###############################################################################
 #run_cv_model_by_batch: runs the cv and prints the results to kaggle
 #INPUTS:
+    #args: (dict) huge list of hyperparameters and model specifications
+    #name:
     #train:
     #test:
-    #feats: the features used for training. 'features' from data_wrangling
-    #sample_submission: the regular sample submissiong from Ion-Transfer
-    #name: the name of the model used. 
-    #nn_epochs: how many epochs the nn will run
-    #nn_batch_size: minibatch size
-    #batch_col: the column useds to split the data into batched. 'group'
-    #splits: The number of Folds for the cross val
+    #feats:
+    #sample_submission:
 #OUTPUTS:
     #
 ###############################################################################
-def run_cv_model_by_batch(train, test,  feats, sample_submission, name, nn_epochs = 60, 
-                          nn_batch_size=16, batch_col='groups', splits=5):
+def run_cv_model_by_batch(args, name, train, test, feats, sample_submission):
+#(train, test,  feats, sample_submission, name, nn_epochs = 60, 
+#                          nn_batch_size=16, batch_col='groups', splits=5):
     
-    name = '{}_{}_{}'.format(name, nn_epochs, nn_batch_size)
+    name = '{}_{}_{}'.format(name, args['Epochs'], args['GROUP_BATCH_SIZE'])
     training_time = time()
-    seed_everything(SEED)
+    seed_everything(args['Seed'])
     K.clear_session()
     config = tf.compat.v1.ConfigProto(intra_op_parallelism_threads=1,inter_op_parallelism_threads=1)
     sess = tf.compat.v1.Session(graph=tf.compat.v1.get_default_graph(), config=config)
@@ -116,7 +115,7 @@ def run_cv_model_by_batch(train, test,  feats, sample_submission, name, nn_epoch
     preds_ = np.zeros((len(test), 11))
     target = ['open_channels']
     group = train['group']
-    kf = GroupKFold(n_splits=5)
+    kf = GroupKFold(n_splits=args['Folds'])
     splits = [x for x in kf.split(train, train[target], group)]
 
     new_splits = []
@@ -145,11 +144,11 @@ def run_cv_model_by_batch(train, test,  feats, sample_submission, name, nn_epoch
         shape_ = (None, train_x.shape[2]) # input is going to be the number of feature we are using (dimension 2 of 0, 1, 2)
         model = Classifier(shape_)
         # using our lr_schedule function
-        cb_lr_schedule = LearningRateScheduler(lr_schedule)
+        cb_lr_schedule = LearningRateScheduler(lr_schedule, args)
         H = model.fit(train_x,train_y,
-                  epochs = nn_epochs,
+                  epochs = args['Epochs'],
                   callbacks = [cb_lr_schedule, MacroF1(model, train_x, train_y, valid_x, valid_y)], # adding custom evaluation metric for each epoch
-                  batch_size = nn_batch_size,verbose = 2,
+                  batch_size = args['Minibatch_size'], verbose = 2,
                   validation_data = (valid_x,valid_y))
         preds_f = model.predict(valid_x)
         #f1_score_ = f1_score(np.argmax(valid_y, axis=2).reshape(-1),  np.argmax(preds_f, axis=2).reshape(-1), average = 'macro') # need to get the class with the biggest probability
@@ -159,7 +158,7 @@ def run_cv_model_by_batch(train, test,  feats, sample_submission, name, nn_epoch
         te_preds = model.predict(test)
         model.save("model-wavenet_fold{}.h5".format(n_fold+1))
         te_preds = te_preds.reshape(-1, te_preds.shape[-1])           
-        preds_ += te_preds / SPLITS
+        preds_ += te_preds / args['Folds']
         
         #Creating a dataframe of the training dynamics of this fold
         df = pd.DataFrame.from_dict(H.history)

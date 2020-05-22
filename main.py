@@ -32,7 +32,10 @@ def main(name = None):
              'Multi_Weights': .05,
              'Activation_penalty': False,
              'LR': .0015,
-             'Wn':1}
+             'Wn':1,
+             'Epochs':5,
+             'Minibatch_Size': 16,
+             'Seed':321}
     
     cv_validation(args = cv_args, model_name = name)
     pass
