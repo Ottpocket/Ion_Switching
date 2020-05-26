@@ -35,9 +35,10 @@ def main(name = None):
              'Wn':1,
              'Epochs':5,
              'Minibatch_Size': 16,
-             'Seed':321}
-    
-    cv_validation(args = cv_args, model_name = name)
+             'Seed':321,
+             'Folds':5}
+    train, test, features = Data_Wrangling(args)
+    run_cv_model_by_batch(args, name, train, test, features, sample_submission)
     pass
 
 main()

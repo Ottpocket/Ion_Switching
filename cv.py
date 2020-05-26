@@ -32,12 +32,6 @@ warnings.filterwarnings('ignore')
 pd.set_option('display.max_columns', 1000)
 pd.set_option('display.max_rows', 500)
 
-import os
-for dirname, _, filenames in os.walk('/kaggle/input'):
-    for filename in filenames:
-        print(os.path.join(dirname, filename))
-
-
 def seed_everything(seed):
     random.seed(seed)
     np.random.seed(seed)
@@ -100,11 +94,8 @@ def lr_schedule(epoch, args):
 #OUTPUTS:
     #
 ###############################################################################
-def run_cv_model_by_batch(args, name, train, test, feats, sample_submission):
-#(train, test,  feats, sample_submission, name, nn_epochs = 60, 
-#                          nn_batch_size=16, batch_col='groups', splits=5):
-    
-    name = '{}_{}_{}'.format(name, args['Epochs'], args['GROUP_BATCH_SIZE'])
+def run_cv_model_by_batch(args, name, train, test, feats, sample_submission):    
+    name = '{}_{}_{}'.format('cow', args['Epochs'], args['GROUP_BATCH_SIZE'])
     training_time = time()
     seed_everything(args['Seed'])
     K.clear_session()
@@ -145,11 +136,19 @@ def run_cv_model_by_batch(args, name, train, test, feats, sample_submission):
         model = Classifier(shape_)
         # using our lr_schedule function
         cb_lr_schedule = LearningRateScheduler(lr_schedule, args)
-        H = model.fit(train_x,train_y,
+        if len(args['Multitask']) ==0:
+            H = model.fit(train_x,train_y,
+                  epochs = args['Epochs'],
+                  callbacks = [cb_lr_schedule, MacroF1(model, train_x, train_y[0], valid_x, valid_y[0])], # adding custom evaluation metric for each epoch
+                  batch_size = args['Minibatch_size'], verbose = 2,
+                  validation_data = (valid_x,valid_y))
+        else:
+            H = model.fit(train_x,train_y,
                   epochs = args['Epochs'],
                   callbacks = [cb_lr_schedule, MacroF1(model, train_x, train_y, valid_x, valid_y)], # adding custom evaluation metric for each epoch
                   batch_size = args['Minibatch_size'], verbose = 2,
                   validation_data = (valid_x,valid_y))
+        
         preds_f = model.predict(valid_x)
         #f1_score_ = f1_score(np.argmax(valid_y, axis=2).reshape(-1),  np.argmax(preds_f, axis=2).reshape(-1), average = 'macro') # need to get the class with the biggest probability
         print('Training fold {} completed. macro f1 score : {:1.5f}'.format(n_fold+1,H.history['F1_val'][-1] ))

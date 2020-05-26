@@ -133,10 +133,12 @@ args = {'Lag': [1],
              'Multitask': [1,2,-1],
              'Multi_Weights': .05,
              'Activation_penalty': False,
-             'LR': .015,
+             'LR': .0015,
              'Wn':1,
-             'Epochs':25,
-             'Minibatch_Size': 16}
+             'Epochs':5,
+             'Minibatch_Size': 16,
+             'Seed':321,
+             'Folds':5}
 model = Classifier([None, 22], args)
 tf.keras.utils.plot_model(model)
 '''
