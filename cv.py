@@ -6,8 +6,7 @@ Created on Thu May 21 07:04:10 2020
 """
 
 import os
-#os.system('ls -l')
-#os.system('pip install tensorflow_addons')
+from Model import Classifier
 import tensorflow as tf
 from tensorflow.keras.layers import *
 import pandas as pd
