@@ -1,14 +1,19 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed May 20 11:24:09 2020
-
-@author: andre
-"""
+import os
+import tensorflow as tf
 import pandas as pd
 import numpy as np
+import random
 import gc
-# read data
-def read_data(RFC = True):
+
+
+
+def seed_everything(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    tf.random.set_seed(seed)
+
+def read_data(RFC = True, NN = False):
     train = pd.read_csv('/kaggle/input/data-without-drift/train_clean.csv', dtype={'time': np.float32, 'signal': np.float32, 'open_channels':np.int32})
     test  = pd.read_csv('/kaggle/input/data-without-drift/test_clean.csv', dtype={'time': np.float32, 'signal': np.float32})
     sub  = pd.read_csv('/kaggle/input/liverpool-ion-switching/sample_submission.csv', dtype={'time': np.float32})
@@ -16,9 +21,16 @@ def read_data(RFC = True):
         Y_train_proba = np.load("/kaggle/input/ion-shifted-rfc-proba/Y_train_proba.npy")
         Y_test_proba = np.load("/kaggle/input/ion-shifted-rfc-proba/Y_test_proba.npy")        
         for i in range(11):
-            train[f"proba_{i}"] = Y_train_proba[:, i]
-            test[f"proba_{i}"] = Y_test_proba[:, i]
-
+            train[f"RF_proba_{i}"] = Y_train_proba[:, i]
+            test[f"RF_proba_{i}"] = Y_test_proba[:, i]
+    if NN == True:
+        ytr_load = np.load('/kaggle/input/ottpocket-edits/Train_probs.npz')
+        Y_train_proba = ytr_load['train_probs']
+        yte_load = np.load('/kaggle/input/ottpocket-edits/Test_probs.npz')
+        Y_test_proba = yte_load['test_probs']
+        for i in range(11):
+            train[f"NN_proba_{i}"] = Y_train_proba[:, i]
+            test[f"NN_proba_{i}"] = Y_test_proba[:, i]
     return train, test, sub
 
 # create batches of 4000 observations
@@ -108,7 +120,7 @@ def feature_selection(train, test):
 ###############################################################################
 def Data_Wrangling(args):
     print('Reading in Data')
-    train, test, sample_submission = read_data(RFC = args['Rfc'])
+    train, test, sample_submission = read_data(RFC = args['Rfc'], NN = args['NN'])
     train, test = normalize(train, test)
         
     print('Creating Features')
@@ -117,5 +129,6 @@ def Data_Wrangling(args):
     test = run_feat_engineering(test, args=args)
     train, test, features = feature_selection(train, test)
     print('Feature Engineering Completed...')
-    return (train, test, features)
+    return (train, test, features, sample_submission)
         
+ 
