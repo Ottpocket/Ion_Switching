@@ -1,24 +1,13 @@
-import os
-#os.system('ls -l')
-#os.system('pip install tensorflow_addons')
 import tensorflow as tf
 from tensorflow.keras.layers import *
-import pandas as pd
-from IPython.display import FileLink
 from time import time
 from tensorflow.keras.callbacks import Callback, LearningRateScheduler
+from tensorflow.keras.losses import categorical_crossentropy
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import backend as K
 from tensorflow.keras import losses, models, optimizers
-#import tensorflow_addons as tfa #Figure out how to get this working!
-import gc
 
 
-import warnings
-warnings.simplefilter('ignore')
-warnings.filterwarnings('ignore')
-pd.set_option('display.max_columns', 1000)
-pd.set_option('display.max_rows', 500)
 ###############################################################################
 #Classifier: The nn classifier
 #INPUTS:
@@ -35,8 +24,7 @@ pd.set_option('display.max_rows', 500)
         #Wn:architecture: (int) arch of wavenet section.
             #1 is standard, 
             #2 is mini
-            #3 is ...
-        
+            #3 is ...     
 ###############################################################################
 def Classifier(shape_, args):    
     def cbr(x, out_layer, kernel, stride, dilation):
@@ -89,10 +77,10 @@ def Classifier(shape_, args):
         else:
             return [1. - multi_weight*(num_losses-1)] +[multi_weight for i in range(num_losses - 1 )]
 
-    inp = Input(shape = (shape_))
+    inp = Input(shape = shape_)
     x = cbr(inp, 64, 7, 1, 1)
     #Commented for faster prototyping.  Get rid of comments when actually submitting code
-    '''
+    
     x = BatchNormalization()(x)
     x = wave_block(x, 16, 3, 12)
     x = BatchNormalization()(x)
@@ -104,8 +92,12 @@ def Classifier(shape_, args):
     x = cbr(x, 32, 7, 1, 1)
     x = BatchNormalization()(x)
     x = wave_block(x, 64, 3, 1)
-    '''
+    
     fork = cbr(x, 32, 7, 1, 1)
+    if args['Rnn']==True:
+        fork = Bidirectional(LSTM(64, return_sequences=True))(fork)
+        fork = Bidirectional(LSTM(64, return_sequences=True))(fork)
+        fork = Bidirectional(LSTM(64, return_sequences =True))(fork)
     multitask_list = Multitask_Head(fork, len(args['Multitask']))
     x = BatchNormalization()(fork)
     x = Dropout(0.2)(x)
@@ -119,26 +111,3 @@ def Classifier(shape_, args):
     model.compile(loss = losses_, optimizer = opt, metrics = ['accuracy'],
                   loss_weights = loss_weights_)
     return model
-
-
-'''
-args = {'Lag': [1],
-             'Lead':[1,2,3,4],
-             'Diff': True,
-             'Rfc': True,
-             'GROUP_BATCH_SIZE': 50000,
-             'Tallest': 2,
-             'Lowest': 2,
-             'Rnn': False,
-             'Multitask': [1,2,-1],
-             'Multi_Weights': .05,
-             'Activation_penalty': False,
-             'LR': .0015,
-             'Wn':1,
-             'Epochs':5,
-             'Minibatch_Size': 16,
-             'Seed':321,
-             'Folds':5}
-model = Classifier([None, 22], args)
-tf.keras.utils.plot_model(model)
-'''
