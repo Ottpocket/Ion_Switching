@@ -4,6 +4,6 @@ The University of Liverpool- Ion Switching competition tested competitors whethe
 
 The data given by the University of Liverpool consisted of a CSV file.  Each row was a ten thousandth of a second snapshot which included the electrophysiological signal and the number of open channels.  
 
-Include Graph of data itself
+<img src="Ion_Graph.PNG" height = 400>
 
 As can be seen, the number of open channels strongly correlates with the fluctuations in the signal.  
