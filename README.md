@@ -6,4 +6,4 @@ The data given by the University of Liverpool consisted of a CSV file.  Each row
 
 <img src="Ion_Graph.PNG" height = 400>
 
-As can be seen, the number of open channels strongly correlates with the fluctuations in the signal.  
+As can be seen, the number of open channels strongly correlates with the fluctuations in the signal.    
